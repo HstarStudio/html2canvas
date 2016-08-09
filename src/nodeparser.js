@@ -40,7 +40,7 @@ function NodeParser(element, renderer, support, imageLoader, options) {
     log("Calculate overflow clips");
     this.calculateOverflowClips();
     log("Start fetching images");
-    this.images = imageLoader.fetch(this.nodes.filter(isElement));
+    this.images = imageLoader.fetch(this.nodes.filter(isElement), options.disableImages);
     this.ready = this.images.ready.then(bind(function() {
         log("Images loaded, starting parsing");
         log("Creating stacking contexts");

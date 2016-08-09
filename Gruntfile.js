@@ -80,20 +80,20 @@ module.exports = function(grunt) {
         connect: {
             server: {
                 options: {
-                    port: 8080,
+                    port: 9080,
                     base: './',
                     keepalive: true
                 }
             },
             altServer: {
                 options: {
-                    port: 8083,
+                    port: 9083,
                     base: './'
                 }
             },
             cors: {
                 options: {
-                    port: 8081,
+                    port: 9081,
                     base: './',
                     middleware:  function(connect, options) {
                         return [
@@ -111,7 +111,7 @@ module.exports = function(grunt) {
             },
             proxy: {
                 options: {
-                    port: 8082,
+                    port: 9082,
                     middleware:  function(connect, options) {
                         return [
                             function(req, res, next) {
@@ -127,7 +127,7 @@ module.exports = function(grunt) {
             },
             ci: {
                 options: {
-                    port: 8080,
+                    port: 9080,
                     base: './'
                 }
             }

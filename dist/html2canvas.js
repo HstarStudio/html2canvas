@@ -1,21 +1,26 @@
 /*
-  html2canvas 0.5.0-beta3 <http://html2canvas.hertzen.com>
+  html2canvas 0.5.0-beta4 <http://html2canvas.hertzen.com>
   Copyright (c) 2016 Niklas von Hertzen
 
   Released under  License
 */
 
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.html2canvas=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.html2canvas = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 (function (global){
-/*! http://mths.be/punycode v1.2.4 by @mathias */
+/*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
 
 	/** Detect free variables */
-	var freeExports = typeof exports == 'object' && exports;
+	var freeExports = typeof exports == 'object' && exports &&
+		!exports.nodeType && exports;
 	var freeModule = typeof module == 'object' && module &&
-		module.exports == freeExports && module;
+		!module.nodeType && module;
 	var freeGlobal = typeof global == 'object' && global;
-	if (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal) {
+	if (
+		freeGlobal.global === freeGlobal ||
+		freeGlobal.window === freeGlobal ||
+		freeGlobal.self === freeGlobal
+	) {
 		root = freeGlobal;
 	}
 
@@ -41,8 +46,8 @@
 
 	/** Regular expressions */
 	regexPunycode = /^xn--/,
-	regexNonASCII = /[^ -~]/, // unprintable ASCII chars + non-ASCII chars
-	regexSeparators = /\x2E|\u3002|\uFF0E|\uFF61/g, // RFC 3490 separators
+	regexNonASCII = /[^\x20-\x7E]/, // unprintable ASCII chars + non-ASCII chars
+	regexSeparators = /[\x2E\u3002\uFF0E\uFF61]/g, // RFC 3490 separators
 
 	/** Error messages */
 	errors = {
@@ -68,7 +73,7 @@
 	 * @returns {Error} Throws a `RangeError` with the applicable error message.
 	 */
 	function error(type) {
-		throw RangeError(errors[type]);
+		throw new RangeError(errors[type]);
 	}
 
 	/**
@@ -81,23 +86,37 @@
 	 */
 	function map(array, fn) {
 		var length = array.length;
+		var result = [];
 		while (length--) {
-			array[length] = fn(array[length]);
+			result[length] = fn(array[length]);
 		}
-		return array;
+		return result;
 	}
 
 	/**
-	 * A simple `Array#map`-like wrapper to work with domain name strings.
+	 * A simple `Array#map`-like wrapper to work with domain name strings or email
+	 * addresses.
 	 * @private
-	 * @param {String} domain The domain name.
+	 * @param {String} domain The domain name or email address.
 	 * @param {Function} callback The function that gets called for every
 	 * character.
 	 * @returns {Array} A new string of characters returned by the callback
 	 * function.
 	 */
 	function mapDomain(string, fn) {
-		return map(string.split(regexSeparators), fn).join('.');
+		var parts = string.split('@');
+		var result = '';
+		if (parts.length > 1) {
+			// In email addresses, only the domain name should be punycoded. Leave
+			// the local part (i.e. everything up to `@`) intact.
+			result = parts[0] + '@';
+			string = parts[1];
+		}
+		// Avoid `split(regex)` for IE8 compatibility. See #17.
+		string = string.replace(regexSeparators, '\x2E');
+		var labels = string.split('.');
+		var encoded = map(labels, fn).join('.');
+		return result + encoded;
 	}
 
 	/**
@@ -107,7 +126,7 @@
 	 * UCS-2 exposes as separate characters) into a single code point,
 	 * matching UTF-16.
 	 * @see `punycode.ucs2.encode`
-	 * @see <http://mathiasbynens.be/notes/javascript-encoding>
+	 * @see <https://mathiasbynens.be/notes/javascript-encoding>
 	 * @memberOf punycode.ucs2
 	 * @name decode
 	 * @param {String} string The Unicode input string (UCS-2).
@@ -201,7 +220,7 @@
 
 	/**
 	 * Bias adaptation function as per section 3.4 of RFC 3492.
-	 * http://tools.ietf.org/html/rfc3492#section-3.4
+	 * https://tools.ietf.org/html/rfc3492#section-3.4
 	 * @private
 	 */
 	function adapt(delta, numPoints, firstTime) {
@@ -316,8 +335,8 @@
 	}
 
 	/**
-	 * Converts a string of Unicode symbols to a Punycode string of ASCII-only
-	 * symbols.
+	 * Converts a string of Unicode symbols (e.g. a domain name label) to a
+	 * Punycode string of ASCII-only symbols.
 	 * @memberOf punycode
 	 * @param {String} input The string of Unicode symbols.
 	 * @returns {String} The resulting Punycode string of ASCII-only symbols.
@@ -430,17 +449,18 @@
 	}
 
 	/**
-	 * Converts a Punycode string representing a domain name to Unicode. Only the
-	 * Punycoded parts of the domain name will be converted, i.e. it doesn't
-	 * matter if you call it on a string that has already been converted to
-	 * Unicode.
+	 * Converts a Punycode string representing a domain name or an email address
+	 * to Unicode. Only the Punycoded parts of the input will be converted, i.e.
+	 * it doesn't matter if you call it on a string that has already been
+	 * converted to Unicode.
 	 * @memberOf punycode
-	 * @param {String} domain The Punycode domain name to convert to Unicode.
+	 * @param {String} input The Punycoded domain name or email address to
+	 * convert to Unicode.
 	 * @returns {String} The Unicode representation of the given Punycode
 	 * string.
 	 */
-	function toUnicode(domain) {
-		return mapDomain(domain, function(string) {
+	function toUnicode(input) {
+		return mapDomain(input, function(string) {
 			return regexPunycode.test(string)
 				? decode(string.slice(4).toLowerCase())
 				: string;
@@ -448,15 +468,18 @@
 	}
 
 	/**
-	 * Converts a Unicode string representing a domain name to Punycode. Only the
-	 * non-ASCII parts of the domain name will be converted, i.e. it doesn't
-	 * matter if you call it with a domain that's already in ASCII.
+	 * Converts a Unicode string representing a domain name or an email address to
+	 * Punycode. Only the non-ASCII parts of the domain name will be converted,
+	 * i.e. it doesn't matter if you call it with a domain that's already in
+	 * ASCII.
 	 * @memberOf punycode
-	 * @param {String} domain The domain name to convert, as a Unicode string.
-	 * @returns {String} The Punycode representation of the given domain name.
+	 * @param {String} input The domain name or email address to convert, as a
+	 * Unicode string.
+	 * @returns {String} The Punycode representation of the given domain name or
+	 * email address.
 	 */
-	function toASCII(domain) {
-		return mapDomain(domain, function(string) {
+	function toASCII(input) {
+		return mapDomain(input, function(string) {
 			return regexNonASCII.test(string)
 				? 'xn--' + encode(string)
 				: string;
@@ -472,11 +495,11 @@
 		 * @memberOf punycode
 		 * @type String
 		 */
-		'version': '1.2.4',
+		'version': '1.4.1',
 		/**
 		 * An object of methods to convert from JavaScript's internal character
 		 * representation (UCS-2) to Unicode code points, and back.
-		 * @see <http://mathiasbynens.be/notes/javascript-encoding>
+		 * @see <https://mathiasbynens.be/notes/javascript-encoding>
 		 * @memberOf punycode
 		 * @type Object
 		 */
@@ -501,15 +524,18 @@
 		define('punycode', function() {
 			return punycode;
 		});
-	} else if (freeExports && !freeExports.nodeType) {
-		if (freeModule) { // in Node.js or RingoJS v0.8.0+
+	} else if (freeExports && freeModule) {
+		if (module.exports == freeExports) {
+			// in Node.js, io.js, or RingoJS v0.8.0+
 			freeModule.exports = punycode;
-		} else { // in Narwhal or RingoJS v0.7.0-
+		} else {
+			// in Narwhal or RingoJS v0.7.0-
 			for (key in punycode) {
 				punycode.hasOwnProperty(key) && (freeExports[key] = punycode[key]);
 			}
 		}
-	} else { // in Rhino or a web browser
+	} else {
+		// in Rhino or a web browser
 		root.punycode = punycode;
 	}
 
@@ -1243,48 +1269,48 @@ function ImageLoader(options, support) {
     this.origin = this.getOrigin(window.location.href);
 }
 
-ImageLoader.prototype.findImages = function(nodes) {
+ImageLoader.prototype.findImages = function (nodes) {
     var images = [];
-    nodes.reduce(function(imageNodes, container) {
-        switch(container.node.nodeName) {
-        case "IMG":
-            return imageNodes.concat([{
-                args: [container.node.src],
-                method: "url"
-            }]);
-        case "svg":
-        case "IFRAME":
-            return imageNodes.concat([{
-                args: [container.node],
-                method: container.node.nodeName
-            }]);
+    nodes.reduce(function (imageNodes, container) {
+        switch (container.node.nodeName) {
+            case "IMG":
+                return imageNodes.concat([{
+                    args: [container.node.src],
+                    method: "url"
+                }]);
+            case "svg":
+            case "IFRAME":
+                return imageNodes.concat([{
+                    args: [container.node],
+                    method: container.node.nodeName
+                }]);
         }
         return imageNodes;
     }, []).forEach(this.addImage(images, this.loadImage), this);
     return images;
 };
 
-ImageLoader.prototype.findBackgroundImage = function(images, container) {
+ImageLoader.prototype.findBackgroundImage = function (images, container) {
     container.parseBackgroundImages().filter(this.hasImageBackground).forEach(this.addImage(images, this.loadImage), this);
     return images;
 };
 
-ImageLoader.prototype.addImage = function(images, callback) {
-    return function(newImage) {
-        newImage.args.forEach(function(image) {
+ImageLoader.prototype.addImage = function (images, callback) {
+    return function (newImage) {
+        newImage.args.forEach(function (image) {
             if (!this.imageExists(images, image)) {
                 images.splice(0, 0, callback.call(this, newImage));
-                log('Added image #' + (images.length), typeof(image) === "string" ? image.substring(0, 100) : image);
+                log('Added image #' + (images.length), typeof (image) === "string" ? image.substring(0, 100) : image);
             }
         }, this);
     };
 };
 
-ImageLoader.prototype.hasImageBackground = function(imageData) {
+ImageLoader.prototype.hasImageBackground = function (imageData) {
     return imageData.method !== "none";
 };
 
-ImageLoader.prototype.loadImage = function(imageData) {
+ImageLoader.prototype.loadImage = function (imageData) {
     if (imageData.method === "url") {
         var src = imageData.args[0];
         if (this.isSVG(src) && !this.support.svg && !this.options.allowTaint) {
@@ -1313,50 +1339,53 @@ ImageLoader.prototype.loadImage = function(imageData) {
     }
 };
 
-ImageLoader.prototype.isSVG = function(src) {
+ImageLoader.prototype.isSVG = function (src) {
     return src.substring(src.length - 3).toLowerCase() === "svg" || SVGContainer.prototype.isInline(src);
 };
 
-ImageLoader.prototype.imageExists = function(images, src) {
-    return images.some(function(image) {
+ImageLoader.prototype.imageExists = function (images, src) {
+    return images.some(function (image) {
         return image.src === src;
     });
 };
 
-ImageLoader.prototype.isSameOrigin = function(url) {
+ImageLoader.prototype.isSameOrigin = function (url) {
     return (this.getOrigin(url) === this.origin);
 };
 
-ImageLoader.prototype.getOrigin = function(url) {
+ImageLoader.prototype.getOrigin = function (url) {
     var link = this.link || (this.link = document.createElement("a"));
     link.href = url;
     link.href = link.href; // IE9, LOL! - http://jsfiddle.net/niklasvh/2e48b/
     return link.protocol + link.hostname + link.port;
 };
 
-ImageLoader.prototype.getPromise = function(container) {
-    return this.timeout(container, this.options.imageTimeout)['catch'](function() {
+ImageLoader.prototype.getPromise = function (container) {
+    return this.timeout(container, this.options.imageTimeout)['catch'](function () {
         var dummy = new DummyImageContainer(container.src);
-        return dummy.promise.then(function(image) {
+        return dummy.promise.then(function (image) {
             container.image = image;
         });
     });
 };
 
-ImageLoader.prototype.get = function(src) {
+ImageLoader.prototype.get = function (src) {
     var found = null;
-    return this.images.some(function(img) {
+    return this.images.some(function (img) {
         return (found = img).src === src;
     }) ? found : null;
 };
 
-ImageLoader.prototype.fetch = function(nodes) {
+ImageLoader.prototype.fetch = function (nodes, disableImages) {
     this.images = nodes.reduce(bind(this.findBackgroundImage, this), this.findImages(nodes));
-    this.images.forEach(function(image, index) {
-        image.promise.then(function() {
-            log("Succesfully loaded image #"+ (index+1), image);
-        }, function(e) {
-            log("Failed loading image #"+ (index+1), image, e);
+    if (disableImages) {
+        this.images.length = 0;
+    }
+    this.images.forEach(function (image, index) {
+        image.promise.then(function () {
+            log("Succesfully loaded image #" + (index + 1), image);
+        }, function (e) {
+            log("Failed loading image #" + (index + 1), image, e);
         });
     });
     this.ready = Promise.all(this.images.map(this.getPromise, this));
@@ -1364,18 +1393,18 @@ ImageLoader.prototype.fetch = function(nodes) {
     return this;
 };
 
-ImageLoader.prototype.timeout = function(container, timeout) {
+ImageLoader.prototype.timeout = function (container, timeout) {
     var timer;
-    var promise = Promise.race([container.promise, new Promise(function(res, reject) {
-        timer = setTimeout(function() {
+    var promise = Promise.race([container.promise, new Promise(function (res, reject) {
+        timer = setTimeout(function () {
             log("Timed out loading image", container);
             reject(container);
         }, timeout);
-    })]).then(function(container) {
+    })]).then(function (container) {
         clearTimeout(timer);
         return container;
     });
-    promise['catch'](function() {
+    promise['catch'](function () {
         clearTimeout(timer);
     });
     return promise;
@@ -1838,7 +1867,7 @@ function NodeParser(element, renderer, support, imageLoader, options) {
     log("Calculate overflow clips");
     this.calculateOverflowClips();
     log("Start fetching images");
-    this.images = imageLoader.fetch(this.nodes.filter(isElement));
+    this.images = imageLoader.fetch(this.nodes.filter(isElement), options.disableImages);
     this.ready = this.images.ready.then(bind(function() {
         log("Images loaded, starting parsing");
         log("Creating stacking contexts");
