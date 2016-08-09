@@ -1,5 +1,8 @@
 ### Changelog ###
 
+v0.5.0-beta4-fork - 9.8.2016
+* Add disalbeImages option. If set it true, you can get a fast build speed.
+
 v0.5.0-beta4 - 23.1.2016
  * Fix logger requiring access to window object
  * Derequire browserify build
